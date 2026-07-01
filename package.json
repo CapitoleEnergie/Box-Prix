@@ -1,0 +1,14 @@
+{
+  "name": "pricer-simulateur",
+  "version": "1.0.0",
+  "description": "Simulateur budgétaire énergie (élec + gaz) répliquant le moteur de calcul Salesforce",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/engine.test.js",
+    "test:api": "node test/api.test.js",
+    "test:fidelity": "node test/fidelity.js",
+    "test:all": "node test/run-all.js"
+  },
+  "engines": { "node": ">=18" }
+}

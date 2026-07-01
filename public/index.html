@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulateur Budgétaire — Capitole Énergie</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img class="logo" src="assets/logo-full.png" alt="Capitole Énergie by epsa" />
+      <span class="app-name">Simulateur Budgétaire</span>
+      <div class="right">
+        <span class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">Connexion…</span></span>
+        <button class="btn btn-secondary btn-sm" id="guideBtn"><span class="mi">menu_book</span> Guide &amp; glossaire</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="intro">
+      <h1>Comparez le budget énergie de vos compteurs</h1>
+      <p>Collez l'identifiant d'un compte, choisissez les compteurs, saisissez les tarifs actuels et proposés : l'outil calcule le budget estimé et l'écart avec le budget actuel, fidèlement au moteur Salesforce.</p>
+    </div>
+
+    <!-- Étape 1 -->
+    <section class="card card-pad">
+      <div class="step-head"><span class="step-num">1</span><h2>Compte client</h2></div>
+      <div class="search-row">
+        <input type="text" id="accountId" class="input" placeholder="Identifiant du compte Salesforce (ex : 001Xx0000…)" autocomplete="off" spellcheck="false" />
+        <button class="btn btn-primary" id="loadBtn"><span class="mi">search</span> Charger les compteurs</button>
+      </div>
+      <div class="hint"><span class="mi">info</span> Les compteurs rattachés au compte (établissement, puis siège) sont récupérés en direct depuis Salesforce.</div>
+      <div id="loadError"></div>
+      <div class="or-divider"><span>ou</span></div>
+      <button class="btn btn-secondary" id="manualBtn"><span class="mi">edit_note</span> Ajouter un compteur manuellement</button>
+      <div class="hint"><span class="mi">info</span> Pour les compteurs non référencés dans Salesforce — saisissez les caractéristiques du compteur pour une simulation rapide.</div>
+    </section>
+
+    <!-- Étape 2 -->
+    <section class="card card-pad" id="compteursPanel" style="display:none">
+      <div class="step-head"><span class="step-num">2</span><h2>Compteurs à simuler <span class="count" id="compteurCount"></span></h2></div>
+      <div class="toolbar" id="compteurToolbar" style="display:none">
+        <button class="btn btn-ghost btn-sm" id="selectAll"><span class="mi">done_all</span> Tout sélectionner</button>
+        <button class="btn btn-ghost btn-sm" id="selectNone"><span class="mi">remove_done</span> Tout désélectionner</button>
+      </div>
+      <div class="compteur-list" id="compteurList"></div>
+    </section>
+
+    <!-- Étape 3 : zone simulation -->
+    <div id="simZone"></div>
+  </main>
+
+  <!-- Synthèse globale -->
+  <div class="summary-bar" id="summaryBar" style="display:none">
+    <div class="summary-inner">
+      <div class="title">Synthèse<br>globale</div>
+      <div class="sm"><div class="k">Budget actuel total</div><div class="v" id="sumActuel">—</div></div>
+      <div class="sm"><div class="k">Budget estimé total</div><div class="v" id="sumEstime">—</div></div>
+      <div class="sm"><div class="k">Écart annuel</div><div class="v" id="sumDiff">—</div><div class="k" id="sumDiffPct"></div></div>
+      <button class="btn btn-primary btn-sm" id="exportBtn"><span class="mi">picture_as_pdf</span> Exporter PDF</button>
+    </div>
+  </div>
+
+  <!-- Modal Compteur Manuel -->
+  <div class="modal-overlay" id="manualOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Ajouter un compteur manuellement" style="max-width:620px">
+      <div class="modal-head">
+        <h2>Compteur manuel</h2>
+        <button class="modal-close" id="manualClose" aria-label="Fermer"><span class="mi">close</span></button>
+      </div>
+      <div class="modal-body" style="padding:18px 22px">
+        <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px">Saisissez les caractéristiques du compteur pour une simulation rapide sans passer par Salesforce.</p>
+        <div class="field-row">
+          <div class="field"><label>Énergie</label>
+            <select class="input" id="mEnergie"><option value="elec">Électricité</option><option value="gaz">Gaz</option></select>
+          </div>
+          <div class="field"><label>Segment</label>
+            <select class="input" id="mSegment">
+              <option value="C5">C5 — BT ≤ 36 kVA</option><option value="C4">C4 — BT &gt; 36 kVA</option>
+              <option value="C3">C3 — HTA</option><option value="C2">C2 — HTA/HTB</option><option value="C1">C1 — HTB</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row" id="mElecFields">
+          <div class="field"><label>Puissance souscrite (kVA)</label><input type="number" step="any" class="input" id="mPuissance" /></div>
+          <div class="field"><label>Nom / Réf. compteur</label><input type="text" class="input" id="mNom" placeholder="ex : PDL 30001234567890" /></div>
+        </div>
+        <div class="field-row" id="mGazFields" style="display:none">
+          <div class="field"><label>Profil gaz</label>
+            <select class="input" id="mProfilGaz"><option value="P011">P011</option><option value="P012">P012</option><option value="P013">P013</option><option value="P014">P014</option><option value="P015">P015</option><option value="P016">P016</option><option value="P017">P017</option><option value="P018">P018</option><option value="P019">P019</option></select>
+          </div>
+          <div class="field"><label>Nom / Réf. compteur</label><input type="text" class="input" id="mNomGaz" placeholder="ex : GI012345" /></div>
+        </div>
+
+        <div class="section-label">Volumes de consommation (MWh/an)</div>
+        <div class="field-row">
+          <div class="field"><label>Volume total annuel</label><input type="number" step="any" class="input" id="mVolTotal" /></div>
+        </div>
+        <div id="mVolPosts">
+          <p style="font-size:11px;color:var(--text-dim);margin:6px 0">Détail par poste (optionnel — requis pour les tarifs horosaisonnalisés) :</p>
+          <div class="field-row">
+            <div class="field"><label>HPH (MWh)</label><input type="number" step="any" class="input" id="mVolHPH" /></div>
+            <div class="field"><label>HCH (MWh)</label><input type="number" step="any" class="input" id="mVolHCH" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>HPE (MWh)</label><input type="number" step="any" class="input" id="mVolHPE" /></div>
+            <div class="field"><label>HCE (MWh)</label><input type="number" step="any" class="input" id="mVolHCE" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Pointe (MWh)</label><input type="number" step="any" class="input" id="mVolHPTE" /></div>
+            <div class="field"><label>HP (MWh)</label><input type="number" step="any" class="input" id="mVolHP" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>HC (MWh)</label><input type="number" step="any" class="input" id="mVolHC" /></div>
+            <div class="field"><label>Base (MWh)</label><input type="number" step="any" class="input" id="mVolBase" /></div>
+          </div>
+        </div>
+        <div id="mPuisPosts" style="display:none">
+          <p style="font-size:11px;color:var(--text-dim);margin:6px 0">Puissances par poste (kVA) — requis pour HTA/HTB et BT &gt; 36 kVA :</p>
+          <div class="field-row">
+            <div class="field"><label>P. HPH</label><input type="number" step="any" class="input" id="mPuisHPH" /></div>
+            <div class="field"><label>P. HCH</label><input type="number" step="any" class="input" id="mPuisHCH" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>P. HPE</label><input type="number" step="any" class="input" id="mPuisHPE" /></div>
+            <div class="field"><label>P. HCE</label><input type="number" step="any" class="input" id="mPuisHCE" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>P. Pointe</label><input type="number" step="any" class="input" id="mPuisHPTE" /></div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost" id="manualCancel">Annuler</button>
+          <button class="btn btn-primary" id="manualAdd"><span class="mi">add_circle</span> Ajouter à la simulation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Guide & Glossaire -->
+  <div class="modal-overlay" id="guideOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Guide et glossaire">
+      <div class="modal-head">
+        <h2>Guide &amp; glossaire</h2>
+        <button class="modal-close" id="guideClose" aria-label="Fermer"><span class="mi">close</span></button>
+      </div>
+      <div class="modal-tabs">
+        <button class="mtab active" data-mtab="guide">Comment le budget est calculé</button>
+        <button class="mtab" data-mtab="glossaire">Glossaire</button>
+      </div>
+      <div class="modal-body">
+        <!-- GUIDE -->
+        <div class="mpanel active guide" id="mpanel-guide">
+          <p>Le budget annuel d'un compteur se décompose en <b>4 postes</b>. Seule la <b>fourniture</b> se négocie avec le fournisseur ; l'acheminement et les taxes sont <b>réglementés</b> et dépendent du compteur (puissance, profil, consommation), pas du fournisseur.</p>
+          <div class="guide-flow">
+            <div class="gblock fourniture"><div class="t"><span class="mi">bolt</span>Fourniture</div><div class="d">Énergie × conso + marge (négocié)</div></div>
+            <div class="gblock acheminement"><div class="t"><span class="mi">hub</span>Acheminement</div><div class="d">TURPE (élec) / ATRT-ATRD (gaz)</div></div>
+            <div class="gblock taxes"><div class="t"><span class="mi">account_balance</span>Taxes</div><div class="d">CTA, TICFE / TICGN</div></div>
+            <div class="gblock abo"><div class="t"><span class="mi">receipt_long</span>Abonnement</div><div class="d">Part fixe</div></div>
+            <div class="eq">=</div>
+            <div class="total"><div class="t">Budget HTVA</div><div class="d" style="font-size:11px;opacity:.85">+ TVA 20 % = TTC</div></div>
+          </div>
+
+          <div class="callout">
+            <h4><span class="mi">help</span>Taxes &amp; abonnement : selon le fournisseur ?</h4>
+            <ul>
+              <li><span class="mi neg">lock</span><span><b>Acheminement &amp; taxes (CTA, TICFE, TICGN, TVA)</b> : réglementés et calculés à partir du <b>compteur</b>. Ils sont <b>identiques quel que soit le fournisseur</b> — deux offres sur le même compteur ont le même acheminement et les mêmes taxes.</span></li>
+              <li><span class="mi ok">edit</span><span><b>Fourniture, marge et abonnement</b> : propres à chaque offre. Ce sont les valeurs que vous <b>saisissez</b> pour l'actuel (contrat en cours) et l'estimé (offre proposée). L'outil ne récupère pas automatiquement la grille d'un fournisseur.</span></li>
+              <li><span class="mi ok">balance</span><span>Conséquence : comme l'acheminement et les taxes s'annulent entre l'actuel et l'estimé, <b>l'écart €/an reflète uniquement la négociation</b> (fourniture + abonnement).</span></li>
+            </ul>
+          </div>
+
+          <h3><span class="badge elec">ÉLEC</span> Détail électricité</h3>
+          <div class="formula">
+            <b>Fourniture</b> = Σ&nbsp;(conso<sub>poste</sub> × (prix<sub>poste</sub> + marge)) + Capacité + CEE + Énergie verte<br>
+            <b>Acheminement (TURPE)</b> = Gestion (CG) + Comptage (CC) + Soutirage fixe &amp; variable (CS) + Injection (CI)<br>
+            <b>Taxes</b> = CTA (15 % de la part fixe d'acheminement) + TICFE (selon la puissance souscrite)<br>
+            <b>Budget HTVA</b> = Fourniture + Acheminement + Taxes + Abonnement (prix/mois × 12)
+          </div>
+
+          <h3><span class="badge gaz">GAZ</span> Détail gaz</h3>
+          <div class="formula">
+            <b>Fourniture</b> = (prix + marge) × conso + Part variable de distribution + CEE + CPB + Énergie verte<br>
+            <b>Acheminement</b> = ATRT (transport : CJA × terme régional + part stockage) + ATRD (distribution, fixe par segment)<br>
+            <b>Taxes</b> = TICGN (× conso) + CTA gaz<br>
+            <b>Budget HTVA</b> = Fourniture + Acheminement + Taxes + Abonnement
+          </div>
+
+          <div class="callout">
+            <h4><span class="mi">tips_and_updates</span>Saisie : contrat en cours vs offre proposée</h4>
+            <ul>
+              <li><span class="mi neg">edit_off</span><span><b>Contrat en cours (actuel)</b> : pas de champ marge — on ne connaît pas la marge appliquée par le fournisseur/courtier précédent. Saisissez le <b>prix d'énergie tout compris</b> du contrat actuel.</span></li>
+              <li><span class="mi ok">lightbulb</span><span><b>Offre proposée (estimé)</b> : un <b>prix marché</b> est suggéré (médiane des propositions des 30 derniers jours pour le même segment et la même catégorie d'activité, <b>hors marge</b>). Cliquez « Appliquer », puis ajoutez votre <b>marge</b>.</span></li>
+            </ul>
+          </div>
+          <div class="note"><span class="mi">verified</span><span>Moteur validé au centime près contre les valeurs stockées dans Salesforce (gaz T1/T2/T3 et élec C2/C4 : 100 %).</span></div>
+        </div>
+
+        <!-- GLOSSAIRE -->
+        <div class="mpanel glossaire" id="mpanel-glossaire">
+          <dl class="gloss">
+            <dt>Budget HTVA / TTC</dt><dd>Hors Taxe sur la Valeur Ajoutée / Toutes Taxes Comprises. Le budget HTVA additionne fourniture, acheminement, taxes et abonnement ; le TTC ajoute la TVA (20 %).</dd>
+            <dt>Budget actuel / estimé</dt><dd>« Actuel » = coût annuel du contrat en cours du client. « Estimé » = coût annuel de l'offre proposée. Leur différence est l'enjeu de la négociation.</dd>
+            <dt>Écart (€/an et %)</dt><dd>Budget estimé − budget actuel. Négatif = économie pour le client ; positif = hausse.</dd>
+            <dt>Fourniture <span class="chip b">négocié</span></dt><dd>Coût de l'énergie elle-même : consommation × prix (€/MWh) + marge. Seul poste réellement négociable.</dd>
+            <dt>Marge globale <span class="chip b">€/MWh</span></dt><dd>Marge ajoutée au prix d'achat de l'énergie (part Capitole + part fournisseur).</dd>
+            <dt>Abonnement</dt><dd>Part fixe de l'offre, saisie en €/mois et annualisée (× 12).</dd>
+            <dt>TURPE <span class="chip e">élec</span></dt><dd>Tarif d'Utilisation des Réseaux Publics d'Électricité (acheminement). Composé de : <b>CG</b> (gestion), <b>CC</b> (comptage), <b>CS</b> (soutirage, fixe + variable selon puissances et volumes), <b>CI</b> (injection). Déterminé par la grille réglementée selon tension, profil et puissance.</dd>
+            <dt>Acheminement gaz — ATRT / ATRD <span class="chip g">gaz</span></dt><dd><b>ATRT</b> = accès au réseau de transport (part transport = CJA × terme régional, + part stockage). <b>ATRD</b> = accès au réseau de distribution (terme fixe par segment T1–T4). Calculé via le PITD du compteur.</dd>
+            <dt>CTA</dt><dd>Contribution Tarifaire d'Acheminement. Élec : 15 % de la part fixe d'acheminement. Gaz : montant lié à l'abonnement réseau (constant par segment).</dd>
+            <dt>TICFE / CSPE <span class="chip e">élec</span></dt><dd>Taxe Intérieure sur la Consommation Finale d'Électricité (ex-CSPE). Tarif au MWh selon la puissance souscrite (≤ 36 kVA vs > 36 kVA).</dd>
+            <dt>TICGN <span class="chip g">gaz</span></dt><dd>Taxe Intérieure de Consommation sur le Gaz Naturel, appliquée au MWh consommé.</dd>
+            <dt>CEE</dt><dd>Certificats d'Économies d'Énergie : contribution (€/MWh) appliquée si l'activité (code APE/NAF) y est soumise.</dd>
+            <dt>CPB <span class="chip g">gaz</span></dt><dd>Contribution au service public (gaz), appliquée selon l'éligibilité APE/NAF.</dd>
+            <dt>Part variable de distribution <span class="chip g">gaz</span></dt><dd>Composante de distribution proportionnelle au volume (barème par segment T1–T4).</dd>
+            <dt>Énergie verte</dt><dd>Surcoût optionnel (€/MWh) pour une offre d'origine renouvelable.</dd>
+            <dt>Capacité <span class="chip e">élec</span></dt><dd>Coût lié au mécanisme de capacité (garantie de puissance disponible), facturé au MWh.</dd>
+            <dt>Segment (C1–C5 / T1–T4)</dt><dd>Classe du compteur. Élec : C1 à C5 (C5 = petits sites BT ≤ 36 kVA). Gaz : T1 à T4 selon le volume annuel.</dd>
+            <dt>Postes horaires</dt><dd>Découpage temporel de la consommation élec : <b>HPH/HCH</b> (heures pleines/creuses hiver), <b>HPE/HCE</b> (été), <b>Pointe</b>, ou simplement <b>HP/HC</b>, ou <b>Base</b> (tarif unique).</dd>
+            <dt>Prix moyen pondéré <span class="chip b">€/MWh</span></dt><dd>Budget HTVA rapporté à la consommation totale — un indicateur du coût unitaire moyen.</dd>
+            <dt>APE / NAF — Catégorie</dt><dd>Code d'activité de l'entreprise, regroupé en catégories (Industrie, Commerce, CHR, Services, Immobilier, Agriculture, Association). Détermine les taxes applicables (CEE, CPB, TICGN, TICFE) et sert de clé pour le prix marché.</dd>
+            <dt>Prix marché (Prix Moyen Pondéré Non Margé) <span class="chip b">estimé</span></dt><dd>Médiane des prix de fourniture <b>hors marge</b> des offres proposées sur les 30 derniers jours, pour le même <b>segment</b> et la même <b>catégorie d'activité</b> (hors fournisseurs non pertinents). Sert de point de départ cohérent pour l'offre estimée ; la fourchette P25–P75 et le nombre d'offres sont affichés pour garder votre jugement.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

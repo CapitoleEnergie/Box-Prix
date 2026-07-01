@@ -1,0 +1,18 @@
+{
+  "_comment": "Snapshot des Custom Labels Salesforce utilisés par le moteur de calcul. Extraits de l'org prod le 2026-06-29. Rafraîchir si les taux changent (voir README).",
+  "TaxTauxCta": 15,
+  "TaxTauxTvaNormale": 20.0,
+  "TaxTauxTvaReduite": 5.5,
+  "TaxTauxCspe": 26.58,
+  "TaxTauxCspeBelow36kva": 30.85,
+  "TaxTauxCspeSup249": 26.58,
+  "TaxTauxTicgn": 16.39,
+  "TurpeCiTaux": 0,
+  "TCK": 398.08,
+  "PrixPartVarDistri_T1": 47.57,
+  "PrixPartVarDistri_T2": 12.79,
+  "PrixPartVarDistri_T3": 7.57,
+  "PrixPartVarDistri_T4": 1.25,
+  "_comment_cta_gaz": "CTA gaz (€/an) constant par segment = 20,71% × abonnement annuel ATRD GRDF. Constant pour T1/T2/T3. T4 variable (dépend de la souscription transport) -> à saisir manuellement. Valeurs constatées sur l'org au 2026-06-30. Rafraîchir au changement de tarif GRDF.",
+  "CtaGazBySegment": { "T1": 13.56, "T2": 46.01, "T3": 321.70 }
+}
