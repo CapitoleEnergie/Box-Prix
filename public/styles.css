@@ -20,10 +20,10 @@
   --text-dim: #6E6E80;
   --text-mut: #9A9AAC;
   /* Sémantique */
-  --save: #12875A; --save-bg: #E6F8EF; --save-bd: #B6E8CF;
+  --save: #12875A; --save-bg: #C1E8B5; --save-bd: #9AD68A;
   --rise: #D11F4A; --rise-bg: #FDECF1; --rise-bd: #F6C9D6;
   --elec: #0C32FF; --elec-bg: #E7ECFF;
-  --gaz: #C77A12; --gaz-bg: #FFF1DA;
+  --gaz: #E543DC; --gaz-bg: #FFCBFD;
   --warn: #B26A00; --warn-bg: #FFF4E0;
   /* Dégradé Capitole */
   --grad: linear-gradient(90deg, #0C32FF 0%, #E543DC 55%, #FFC14F 100%);
@@ -129,6 +129,9 @@ h1, h2, h3 { font-family: var(--font-title); font-weight: 700; letter-spacing: -
   transition: border-color .15s, box-shadow .15s;
 }
 .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(80,32,234,.12); }
+input[type=number].input::-webkit-outer-spin-button,
+input[type=number].input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number].input { -moz-appearance: textfield; }
 .search-row .input { flex: 1; min-width: 280px; font-family: ui-monospace, 'SF Mono', monospace; }
 .hint { font-size: 12.5px; color: var(--text-dim); margin-top: 10px; display: flex; align-items: center; gap: 6px; }
 .hint .mi { font-size: 16px; color: var(--text-mut); }
@@ -136,7 +139,16 @@ h1, h2, h3 { font-family: var(--font-title); font-weight: 700; letter-spacing: -
 
 /* ===== Liste compteurs ===== */
 .compteur-list { display: grid; gap: 8px; }
-.toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+.input-sm { padding: 6px 9px; font-size: 12.5px; border-radius: 8px; }
+.tb-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+.tb-lab { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+.tb-arrow { color: var(--text-mut); font-weight: 700; }
+.tb-hint { font-size: 11.5px; color: var(--primary); }
+.year-chips { display: inline-flex; gap: 6px; }
+.year-chip { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-dim); border-radius: 8px; padding: 6px 12px; font-family: var(--font-body); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.year-chip:hover { border-color: var(--primary); color: var(--primary); }
+.year-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
 .compteur-item {
   display: flex; align-items: center; gap: 14px; padding: 12px 14px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -166,10 +178,38 @@ h1, h2, h3 { font-family: var(--font-title); font-weight: 700; letter-spacing: -
 
 .type-select { margin-bottom: 16px; max-width: 380px; }
 
+/* Actions carte simulation (import facture) */
+.sim-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.sim-actions-hint { font-size: 11.5px; color: var(--text-mut); flex: 1; min-width: 200px; }
+
+/* Bandeau import facture */
+.invoice-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius); margin-bottom: 14px; font-size: 12.5px; }
+.invoice-banner.busy { background: var(--primary-soft); border: 1px solid #d9d4fb; color: var(--primary); }
+.invoice-banner.err { background: var(--rise-bg); border: 1px solid var(--rise-bd); color: var(--rise); }
+.invoice-banner.ok { background: var(--save-bg); border: 1px solid var(--save-bd); color: var(--save); }
+.invoice-banner.review { display: block; padding: 12px 16px; background: #EAF3FF; border: 1px solid #B8D4F0; color: #1E3A5F; }
+.invoice-banner.review .invoice-banner-head { display: flex; align-items: flex-start; gap: 10px; }
+.invoice-banner.review .invoice-banner-head > .mi { font-size: 22px; color: #1E3A5F; flex: none; margin-top: 2px; }
+.invoice-banner.review .invoice-banner-head > div:not(.invoice-banner-btns) { flex: 1; min-width: 0; }
+.invoice-banner-title { font-weight: 700; font-size: 13.5px; }
+.invoice-banner-sub { font-size: 11.5px; color: #446A8F; margin-top: 2px; }
+.invoice-banner-btns { display: flex; gap: 6px; flex: none; }
+.invoice-banner-warn { margin-top: 10px; padding: 8px 12px; background: var(--warn-bg); border: 1px solid #F0D9A8; border-radius: var(--radius-sm); color: var(--warn); font-size: 11.5px; display: flex; align-items: flex-start; gap: 6px; }
+.invoice-banner-warn code { background: #fff; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; color: #232323; font-family: ui-monospace, monospace; }
+.invoice-banner-notes { margin-top: 8px; padding: 8px 12px; background: #F7F8FB; border-radius: var(--radius-sm); color: var(--text-dim); font-size: 11.5px; display: flex; align-items: flex-start; gap: 6px; }
+.invoice-banner-notes .mi { flex: none; margin-top: 1px; color: var(--text-mut); }
+
+/* Champs pré-remplis par extraction facture — surlignage jaune */
+.input.from-invoice { background: #FFF8DC; border-color: #F0D97A; box-shadow: inset 0 0 0 1px #F0D97A; }
+.input.from-invoice:focus { border-color: var(--primary); box-shadow: inset 0 0 0 1px #F0D97A, 0 0 0 3px rgba(80,32,234,.12); }
+.invoice-tag { display: inline-flex; align-items: center; gap: 2px; font-size: 9.5px; font-weight: 700; padding: 1px 5px; margin-left: 4px; border-radius: 4px; background: #FFF4CC; color: #7A5F00; letter-spacing: .2px; }
+.invoice-tag .mi { font-size: 11px; }
+
 /* Bandeau pré-remplissage */
 .prefill-banner { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: var(--radius); margin-bottom: 14px; background: var(--save-bg); border: 1px solid var(--save-bd); font-size: 12px; color: var(--save); }
 .prefill-banner .mi { font-size: 18px; flex: none; }
 .prefill-banner b { font-family: ui-monospace, monospace; font-size: 11.5px; }
+.prefill-banner.warn { background: var(--warn-bg); border-color: #F0D9A8; color: var(--warn); }
 
 /* Suggestion prix marché */
 .market { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius); margin-bottom: 14px; background: linear-gradient(90deg, rgba(80,32,234,.06), rgba(229,67,220,.06)); border: 1px solid #e0dafa; }
@@ -180,12 +220,31 @@ h1, h2, h3 { font-family: var(--font-title); font-weight: 700; letter-spacing: -
 .market .lvl { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--primary-soft); color: var(--primary); }
 .market .lvl.seg { background: var(--warn-bg); color: var(--warn); }
 .market.none { background: var(--bg); border-color: var(--border); color: var(--text-dim); }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
-.col { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.market-toggle { display: inline-flex; gap: 0; margin-bottom: 6px; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; background: var(--surface); }
+.market-toggle button { border: none; background: transparent; padding: 4px 10px; font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--text-dim); cursor: pointer; }
+.market-toggle button + button { border-left: 1px solid var(--border-strong); }
+.market-toggle button.on { background: var(--primary); color: #fff; }
+.market-toggle button:not(.on):hover { background: var(--primary-soft); color: var(--primary); }
+
+/* Bouton détail offres + popover */
+.market-detail-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 6px; width: 26px; height: 26px; cursor: pointer; color: var(--primary); padding: 0; vertical-align: middle; transition: background .15s, border-color .15s; }
+.market-detail-btn:hover { background: var(--primary-soft); border-color: var(--primary); }
+.market-detail-btn .mi { font-size: 16px; }
+.market-popover { display: none; position: absolute; z-index: 40; top: 100%; left: 0; margin-top: 6px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 12px; min-width: 680px; max-width: 900px; overflow-x: auto; }
+.market-popover.open { display: block; }
+.market-popover-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--primary); margin-bottom: 8px; }
+.market-popover-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.market-popover-table th, .market-popover-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.market-popover-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; color: var(--text-mut); font-weight: 600; background: var(--bg); }
+.market-popover-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.market .txt { position: relative; }
+.cols { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0; }
+.cols::before { content: ''; grid-column: 2; grid-row: 1; background: var(--border-strong); }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .cols::before { display: none; } }
+.col { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin: 0 8px; }
 .col.actuel { background: #fcfcfd; }
 .col.estime { background: var(--primary-soft); border-color: #d9d4fb; }
-.col h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.col h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
 .tag { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: .3px; }
 .tag.a { background: #ECECF2; color: var(--text-dim); }
 .tag.e { background: var(--primary); color: #fff; }
@@ -197,6 +256,12 @@ h1, h2, h3 { font-family: var(--font-title); font-weight: 700; letter-spacing: -
 select.input { cursor: pointer; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .section-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--text-mut); margin: 14px 0 8px; padding-top: 10px; border-top: 1px dashed var(--border); }
+
+/* Prix moyen pondéré (hors marge) sous la durée */
+.pmnm-box { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 10px; padding: 9px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px dashed var(--border-strong); }
+.pmnm-k { font-size: 11px; color: var(--text-dim); font-weight: 600; }
+.pmnm-v { font-size: 15px; font-weight: 800; font-family: var(--font-title); font-variant-numeric: tabular-nums; color: var(--noir); white-space: nowrap; }
+.pmnm-src { font-size: 9.5px; font-weight: 500; color: var(--text-mut); font-family: var(--font-body); }
 
 /* ===== Résultat compteur ===== */
 .result { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
@@ -231,20 +296,22 @@ details.breakdown[open] summary .mi { transform: rotate(180deg); }
 .bd-table th { color: var(--text-mut); font-weight: 600; font-size: 11px; text-transform: uppercase; }
 .bd-table td.num { text-align: right; }
 .bd-table tr.strong td { font-weight: 700; background: #fafafe; }
+.bd-table tr.subtotal td { font-weight: 700; background: #EDEDFF; color: var(--primary); border-top: 1px solid #d9d4fb; border-bottom: 1px solid #d9d4fb; }
 
 /* ===== Synthèse globale ===== */
-.summary-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -6px 24px rgba(35,35,35,.08); }
+.summary-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--save-bg); border-top: 2px solid var(--save-bd); box-shadow: 0 -6px 24px rgba(35,35,35,.10); }
 .summary-bar::before { content: ''; display: block; height: 3px; background: var(--grad); }
-.summary-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: grid; grid-template-columns: auto 1fr 1fr 1.2fr auto; gap: 18px; align-items: center; }
+.summary-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: grid; grid-template-columns: auto 1fr 1fr 1.2fr auto; gap: 14px; align-items: center; }
 @media (max-width: 760px) { .summary-inner { grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px; } }
-.summary-bar .title { font-family: var(--font-title); font-weight: 700; font-size: 13px; color: var(--text-dim); }
-.sm { }
-.sm .k { font-size: 11px; color: var(--text-dim); }
-.sm .v { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; font-family: var(--font-title); }
+.summary-bar .title { font-family: var(--font-title); font-weight: 800; font-size: 14px; color: var(--noir); }
+.sm { background: var(--surface); border: 1px solid var(--save-bd); border-radius: var(--radius-sm); padding: 10px 14px; text-align: center; }
+.sm .k { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .3px; font-weight: 600; }
+.sm .v { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; font-family: var(--font-title); color: var(--noir); }
 .sm .v.save { color: var(--save); } .sm .v.rise { color: var(--rise); }
 
 /* ===== Divider ===== */
 .manual-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; background: var(--jaune); color: var(--noir); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; vertical-align: middle; }
+.compte-tag { display: inline-block; padding: 1px 6px; border-radius: 4px; background: var(--primary-soft); color: var(--primary); font-size: 10px; font-weight: 600; margin-left: 6px; vertical-align: middle; }
 .or-divider { display: flex; align-items: center; gap: 14px; margin: 16px 0 12px; color: var(--text-mut); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
 .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
@@ -253,6 +320,12 @@ details.breakdown[open] summary .mi { transform: rotate(180deg); }
 .empty .mi { font-size: 40px; display: block; margin-bottom: 8px; color: var(--border-strong); }
 .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Barre de chargement SF */
+.loading-bar { margin-top: 14px; }
+.loading-bar-track { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.loading-bar-fill { height: 100%; width: 0; border-radius: 3px; background: var(--grad); transition: width .5s ease; }
+.loading-bar-text { font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
 .flag-pill { font-size: 10.5px; padding: 2px 8px; border-radius: 6px; background: var(--bg); color: var(--text-mut); border: 1px solid var(--border); }
 .flag-pill.on { background: var(--save-bg); color: var(--save); border-color: var(--save-bd); }
 

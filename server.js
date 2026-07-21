@@ -12,6 +12,8 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const { execFile } = require('child_process');
 const { URL } = require('url');
 
 const sf = require('./lib/sf');
@@ -20,6 +22,8 @@ const compteurs = require('./lib/compteurs');
 const engine = require('./lib/engine');
 const marketprice = require('./lib/marketprice');
 const prefill = require('./lib/prefill');
+const account = require('./lib/account');
+const invoiceExtractor = require('./lib/invoice-extractor');
 
 const PORT = process.env.PORT || 4173;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -31,10 +35,10 @@ function sendJSON(res, code, obj) {
   res.end(body);
 }
 
-function readBody(req) {
+function readBody(req, maxBytes = 5e6) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (c) => { data += c; if (data.length > 5e6) req.destroy(); });
+    req.on('data', (c) => { data += c; if (data.length > maxBytes) req.destroy(); });
     req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(e); } });
     req.on('error', reject);
   });
@@ -88,6 +92,13 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { accountId: id, byCompteur: data });
     }
 
+    const mMeta = p.match(/^\/api\/account\/([^/]+)\/meta$/);
+    if (mMeta) {
+      const id = decodeURIComponent(mMeta[1]);
+      const data = await account.meta(id);
+      return sendJSON(res, 200, { accountId: id, ...data });
+    }
+
     if (p === '/api/compute' && req.method === 'POST') {
       const body = await readBody(req);
       const ref = await reference.load();
@@ -95,6 +106,59 @@ const server = http.createServer(async (req, res) => {
       if (!compteur) return sendJSON(res, 400, { error: 'compteur manquant' });
       const result = engine.simulateCompteur(compteur, actuel, estime, ref, overrides || {});
       return sendJSON(res, 200, result);
+    }
+
+    if (p === '/api/export-pdf' && req.method === 'POST') {
+      const body = await readBody(req);
+      if (!body.html) return sendJSON(res, 400, { error: 'html manquant' });
+      const tmpDir = os.tmpdir();
+      const ts = Date.now();
+      const htmlPath = path.join(tmpDir, `sim_${ts}.html`);
+      const pdfPath = path.join(tmpDir, `sim_${ts}.pdf`);
+      fs.writeFileSync(htmlPath, body.html, 'utf8');
+      const scriptPath = path.join(__dirname, 'lib', 'html2pdf.py');
+      return new Promise((resolve) => {
+        execFile('python', [scriptPath, htmlPath, pdfPath], { timeout: 30000 }, (err) => {
+          try { fs.unlinkSync(htmlPath); } catch (_) {}
+          if (err) {
+            try { fs.unlinkSync(pdfPath); } catch (_) {}
+            sendJSON(res, 500, { error: 'Échec génération PDF: ' + (err.message || '').split('\n')[0] });
+            return resolve();
+          }
+          const pdf = fs.readFileSync(pdfPath);
+          try { fs.unlinkSync(pdfPath); } catch (_) {}
+          const filename = body.filename || 'simulation.pdf';
+          res.writeHead(200, {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Length': pdf.length,
+          });
+          res.end(pdf);
+          resolve();
+        });
+      });
+    }
+
+    if (p === '/api/extract-invoice' && req.method === 'POST') {
+      // Upload PDF en base64 dans un JSON (limite 10 Mo). Écriture temporaire, anonymisation,
+      // appel OpenAI puis suppression du fichier local.
+      const body = await readBody(req, 12e6);
+      if (!body || !body.pdfBase64) return sendJSON(res, 400, { error: 'pdfBase64 manquant' });
+      const tmpDir = os.tmpdir();
+      const tmpPath = path.join(tmpDir, `invoice_${Date.now()}_${Math.floor(Math.random() * 1e6)}.pdf`);
+      try {
+        fs.writeFileSync(tmpPath, Buffer.from(body.pdfBase64, 'base64'));
+      } catch (e) {
+        return sendJSON(res, 400, { error: 'PDF invalide : ' + e.message });
+      }
+      try {
+        const result = await invoiceExtractor.extractFromPdf(tmpPath);
+        return sendJSON(res, 200, result);
+      } catch (e) {
+        return sendJSON(res, 500, { error: 'Extraction échouée : ' + (e.message || '').split('\n')[0] });
+      } finally {
+        try { fs.unlinkSync(tmpPath); } catch (_) {}
+      }
     }
 
     if (p.startsWith('/api/')) return sendJSON(res, 404, { error: 'route inconnue' });

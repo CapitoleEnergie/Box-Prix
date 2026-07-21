@@ -36,7 +36,11 @@
         <input type="text" id="accountId" class="input" placeholder="Identifiant du compte Salesforce (ex : 001Xx0000…)" autocomplete="off" spellcheck="false" />
         <button class="btn btn-primary" id="loadBtn"><span class="mi">search</span> Charger les compteurs</button>
       </div>
-      <div class="hint"><span class="mi">info</span> Les compteurs rattachés au compte (établissement, puis siège) sont récupérés en direct depuis Salesforce.</div>
+      <div class="hint"><span class="mi">sync</span> Synchronisation en temps réel des données Salesforce.</div>
+      <div class="loading-bar" id="loadingBar" style="display:none">
+        <div class="loading-bar-track"><div class="loading-bar-fill" id="loadingBarFill"></div></div>
+        <div class="loading-bar-text" id="loadingBarText">Connexion à Salesforce…</div>
+      </div>
       <div id="loadError"></div>
       <div class="or-divider"><span>ou</span></div>
       <button class="btn btn-secondary" id="manualBtn"><span class="mi">edit_note</span> Ajouter un compteur manuellement</button>
@@ -49,12 +53,45 @@
       <div class="toolbar" id="compteurToolbar" style="display:none">
         <button class="btn btn-ghost btn-sm" id="selectAll"><span class="mi">done_all</span> Tout sélectionner</button>
         <button class="btn btn-ghost btn-sm" id="selectNone"><span class="mi">remove_done</span> Tout désélectionner</button>
+        <span class="tb-sep"></span>
+        <select class="input input-sm" id="filterEnergie" title="Filtrer par énergie">
+          <option value="">Énergie : toutes</option>
+          <option value="elec">Électricité</option>
+          <option value="gaz">Gaz</option>
+        </select>
+        <select class="input input-sm" id="filterSegment" title="Filtrer par segment">
+          <option value="">Segment : tous</option>
+        </select>
+      </div>
+      <div class="toolbar" id="marketPeriodBar" style="display:none">
+        <span class="tb-lab">Années de livraison (référence marché) :</span>
+        <div class="year-chips" id="yearChips">
+          <button type="button" class="year-chip" data-year="2026">2026</button>
+          <button type="button" class="year-chip" data-year="2027">2027</button>
+          <button type="button" class="year-chip" data-year="2028">2028</button>
+          <button type="button" class="year-chip" data-year="2029">2029</button>
+          <button type="button" class="year-chip" data-year="2030">2030</button>
+          <button type="button" class="year-chip" data-year="2031">2031</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="marketPeriodClear"><span class="mi">clear</span> Toutes</button>
+        <span class="tb-sep"></span>
+        <button class="btn btn-secondary btn-sm" id="applyMarketAll"><span class="mi">done_all</span> Appliquer les prix marché à tous</button>
+        <span class="tb-hint" id="marketPeriodHint"></span>
       </div>
       <div class="compteur-list" id="compteurList"></div>
     </section>
 
     <!-- Étape 3 : zone simulation -->
     <div id="simZone"></div>
+
+    <!-- Contacts pour l'export PDF -->
+    <section class="card card-pad" id="contactsBar" style="display:none">
+      <div class="step-head"><span class="mi" style="font-size:22px;color:var(--primary)">contacts</span><h2 style="font-size:15px">Contacts (repris dans le PDF)</h2></div>
+      <div class="field-row">
+        <div class="field"><label>Contact commercial</label><input class="input" id="contactCommercial" placeholder="Nom · email · téléphone" /></div>
+        <div class="field"><label>Contact client</label><input class="input" id="contactClient" placeholder="Nom · email · téléphone" /></div>
+      </div>
+    </section>
   </main>
 
   <!-- Synthèse globale -->
@@ -99,28 +136,45 @@
           <div class="field"><label>Nom / Réf. compteur</label><input type="text" class="input" id="mNomGaz" placeholder="ex : GI012345" /></div>
         </div>
 
-        <div class="section-label">Volumes de consommation (MWh/an)</div>
-        <div class="field-row">
-          <div class="field"><label>Volume total annuel</label><input type="number" step="any" class="input" id="mVolTotal" /></div>
+        <div class="field-row" id="mTypeTarifRow">
+          <div class="field"><label>Type de tarif</label>
+            <select class="input" id="mTypeTarif">
+              <option value="Unique">Unique (Base)</option>
+              <option value="2postes">2 postes — HP / HC</option>
+              <option value="4postes">4 postes — HPH / HPE / HCH / HCE</option>
+            </select>
+          </div>
         </div>
-        <div id="mVolPosts">
-          <p style="font-size:11px;color:var(--text-dim);margin:6px 0">Détail par poste (optionnel — requis pour les tarifs horosaisonnalisés) :</p>
+
+        <div class="section-label">Volumes de consommation (MWh/an)</div>
+
+        <div id="mVolGrpBase">
           <div class="field-row">
-            <div class="field"><label>HPH (MWh)</label><input type="number" step="any" class="input" id="mVolHPH" /></div>
-            <div class="field"><label>HCH (MWh)</label><input type="number" step="any" class="input" id="mVolHCH" /></div>
+            <div class="field"><label>Volume Base (MWh)</label><input type="number" step="any" class="input mvol" id="mVolBase" /></div>
+          </div>
+        </div>
+        <div id="mVolGrp2" style="display:none">
+          <div class="field-row">
+            <div class="field"><label>HP — Heures Pleines (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHP" /></div>
+            <div class="field"><label>HC — Heures Creuses (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHC" /></div>
+          </div>
+        </div>
+        <div id="mVolGrp4" style="display:none">
+          <div class="field-row">
+            <div class="field"><label>HPH (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHPH" /></div>
+            <div class="field"><label>HCH (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHCH" /></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>HPE (MWh)</label><input type="number" step="any" class="input" id="mVolHPE" /></div>
-            <div class="field"><label>HCE (MWh)</label><input type="number" step="any" class="input" id="mVolHCE" /></div>
+            <div class="field"><label>HPE (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHPE" /></div>
+            <div class="field"><label>HCE (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHCE" /></div>
           </div>
-          <div class="field-row">
-            <div class="field"><label>Pointe (MWh)</label><input type="number" step="any" class="input" id="mVolHPTE" /></div>
-            <div class="field"><label>HP (MWh)</label><input type="number" step="any" class="input" id="mVolHP" /></div>
+          <div class="field-row" id="mVolPointeRow" style="display:none">
+            <div class="field"><label>Pointe (MWh)</label><input type="number" step="any" class="input mvol" id="mVolHPTE" /></div>
           </div>
-          <div class="field-row">
-            <div class="field"><label>HC (MWh)</label><input type="number" step="any" class="input" id="mVolHC" /></div>
-            <div class="field"><label>Base (MWh)</label><input type="number" step="any" class="input" id="mVolBase" /></div>
-          </div>
+        </div>
+
+        <div class="field-row" style="margin-top:10px">
+          <div class="field"><label>Volume total annuel (MWh) — calculé automatiquement</label><input type="number" step="any" class="input" id="mVolTotal" readonly style="background:var(--bg);font-weight:700" /></div>
         </div>
         <div id="mPuisPosts" style="display:none">
           <p style="font-size:11px;color:var(--text-dim);margin:6px 0">Puissances par poste (kVA) — requis pour HTA/HTB et BT &gt; 36 kVA :</p>
