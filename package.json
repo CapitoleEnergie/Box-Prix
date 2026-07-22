@@ -11,7 +11,7 @@
     "test:fidelity": "node test/fidelity.js",
     "test:all": "node test/run-all.js"
   },
-  "engines": { "node": ">=18" },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "@sparticuz/chromium": "^131.0.1",
     "pdfjs-dist": "^4.10.38",

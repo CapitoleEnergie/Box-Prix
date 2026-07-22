@@ -529,6 +529,13 @@ function defaultInputs(c) {
     estime.duree = state.marketPeriod.years.length;
   }
 
+  // Éligibilité CEE : si l'APE/NAF du compte du compteur n'est pas éligible, forcer CEE à 0
+  // (s'applique aux comptes parents ET enfants — la valeur vient du compte du compteur lui-même)
+  if (c.apenaf && c.apenaf.CEE__c === false) {
+    estime.ceeUser = 0;
+    actuel.ceeUser = 0;
+  }
+
   // Zéro-fill : champs estimé encore vides → 0
   for (const k of Object.keys(estime)) {
     if (k === 'typeTarifs' || k === '_margeAuto') continue;
@@ -571,7 +578,7 @@ function fieldDefs(en, typeTarifs, which) {
   f.push({ k: 'ceeUser', l: 'CEE (€/MWh)', h: 'Certificats d\'Économies d\'Énergie (si éligible APE/NAF).' });
   f.push({ k: 'prixAbo', l: 'Abonnement (€/mois)', h: 'Part fixe mensuelle, annualisée × 12.' });
   f.push({ k: 'energieVerte', l: 'Énergie verte (€/MWh)', h: 'Surcoût optionnel origine renouvelable.' });
-  f.push({ k: 'duree', l: 'Durée du contrat (mois)', h: 'Durée du contrat en mois (ex : 12, 24, 36). Informatif — n\'affecte pas le calcul annuel.' });
+  f.push({ k: 'duree', l: 'Durée du contrat (années)', h: 'Nombre d\'années (ex : 1, 2, 3). Définit la période du budget estimé — sert au calcul de la date de fin de contrat.' });
   return f;
 }
 
@@ -751,8 +758,9 @@ function applyMarket(c, s) {
   // Marge : 20 % du prix de l'énergie (formule automatique)
   inp.estime.margeGlobal = Math.round(m * 0.20 * 100) / 100;
   inp.estime._margeAuto = true;
-  // CEE médian agrégé
-  if (s.cee != null && s.ceeN > 0) inp.estime.ceeUser = s.cee;
+  // CEE médian agrégé — sauf si le compte n'est pas éligible aux CEE (APE/NAF)
+  if (s.cee != null && s.ceeN > 0 && !(c.apenaf && c.apenaf.CEE__c === false)) inp.estime.ceeUser = s.cee;
+  if (c.apenaf && c.apenaf.CEE__c === false) inp.estime.ceeUser = 0;
 }
 
 function resetEstime(c) {
