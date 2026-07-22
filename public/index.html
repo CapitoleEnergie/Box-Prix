@@ -12,6 +12,61 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Gate d'accès Capitole Hub -->
+  <div id="capitoleGate" style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;color:#5D4037">
+    <div id="gateMsg">Vérification de l'accès…</div>
+  </div>
+  <script>
+  (async () => {
+    const HUB_VERIFY_URL = 'https://hub-capitole.vercel.app/api/verify-app-token';
+    const SLUG = 'box-prix';
+
+    const gate = document.getElementById('capitoleGate');
+    const msg  = document.getElementById('gateMsg');
+
+    // Bypass en dev local (localhost / 127.0.0.1) pour ne pas bloquer les tests
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      console.warn('[Capitole Gate] Bypass en dev local — aucune vérification hub');
+      gate.remove();
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    const deny = (txt) => {
+      msg.innerHTML = `<div style="text-align:center">
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px">🔒 Accès refusé</div>
+        <div style="color:#666">${txt}</div>
+        <div style="margin-top:16px;font-size:13px">Retourne sur le hub Capitole pour accéder à cette application.</div>
+      </div>`;
+    };
+
+    if (!token) { deny("Token manquant."); return; }
+
+    try {
+      const res = await fetch(HUB_VERIFY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, slug: SLUG })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { deny(data.error || "Session invalide."); return; }
+
+      window.CAPITOLE_USER = {
+        email:   data.email,
+        cellule: data.cellule,
+        role:    data.role
+      };
+
+      window.history.replaceState({}, '', window.location.pathname);
+      gate.remove();
+    } catch (e) {
+      deny("Erreur réseau. Réessaie depuis le hub.");
+    }
+  })();
+  </script>
+
   <header class="topbar">
     <div class="topbar-inner">
       <img class="logo" src="assets/logo-full.png" alt="Capitole Énergie by epsa" />
