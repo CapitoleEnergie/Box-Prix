@@ -11,10 +11,12 @@
     "test:fidelity": "node test/fidelity.js",
     "test:all": "node test/run-all.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
-    "@sparticuz/chromium": "^131.0.1",
+    "@sparticuz/chromium": "131.0.1",
     "pdfjs-dist": "^4.10.38",
-    "puppeteer-core": "^23.11.1"
+    "puppeteer-core": "23.11.1"
   }
 }
