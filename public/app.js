@@ -5,7 +5,7 @@ const state = {
   labels: {}, market: null, marketMode: 'proposition', marketPeriod: null,
   compteurs: [], byId: {}, selected: new Set(),
   inputs: {}, results: {}, timers: {}, prefill: {}, meta: {},
-  filterEnergie: '', filterSegment: '',
+  filterEnergie: '', filterSegment: '', filterCompte: '',
 };
 
 const eur = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -261,6 +261,7 @@ $('selectAll').addEventListener('click', () => { visibleCompteurs().forEach(c =>
 $('selectNone').addEventListener('click', () => { state.selected.clear(); renderCompteurList(); renderSimZone(); });
 $('filterEnergie').addEventListener('change', (e) => { state.filterEnergie = e.target.value; renderCompteurList(); renderSimZone(); });
 $('filterSegment').addEventListener('change', (e) => { state.filterSegment = e.target.value; renderCompteurList(); renderSimZone(); });
+$('filterCompte').addEventListener('change', (e) => { state.filterCompte = e.target.value; renderCompteurList(); renderSimZone(); });
 document.querySelectorAll('.year-chip').forEach(b => b.addEventListener('click', () => {
   b.classList.toggle('on');
   updateMarketPeriod();
@@ -327,6 +328,7 @@ function visibleCompteurs() {
   return state.compteurs.filter(c => {
     if (state.filterEnergie && energieOf(c) !== state.filterEnergie) return false;
     if (state.filterSegment && (c.Segment__c || '') !== state.filterSegment) return false;
+    if (state.filterCompte && (c.compteNom || '') !== state.filterCompte) return false;
     return true;
   });
 }
@@ -370,9 +372,10 @@ async function loadCompteurs() {
     state.selected.clear(); state.results = {};
     state.prefill = pf.byCompteur || {};
     state.meta = meta || {};
-    state.filterEnergie = ''; state.filterSegment = '';
-    $('filterEnergie').value = ''; $('filterSegment').value = '';
+    state.filterEnergie = ''; state.filterSegment = ''; state.filterCompte = '';
+    $('filterEnergie').value = ''; $('filterSegment').value = ''; $('filterCompte').value = '';
     populateSegmentFilter();
+    populateCompteFilter();
     $('compteursPanel').style.display = 'block';
     $('compteurCount').textContent = `· ${data.count} compteur(s)`;
     $('compteurToolbar').style.display = data.count ? 'flex' : 'none';
@@ -408,6 +411,15 @@ function populateSegmentFilter() {
   const sel = $('filterSegment');
   const segs = [...new Set(state.compteurs.map(c => c.Segment__c).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">Segment : tous</option>' + segs.map(s => `<option value="${s}">Segment ${s}</option>`).join('');
+}
+
+function populateCompteFilter() {
+  const sel = $('filterCompte');
+  const noms = [...new Set(state.compteurs.map(c => c.compteNom).filter(Boolean))].sort();
+  // N'afficher le filtre que s'il y a au moins 2 comptes distincts (parent + enfant)
+  if (noms.length < 2) { sel.style.display = 'none'; sel.innerHTML = '<option value="">Compte : tous</option>'; return; }
+  sel.style.display = '';
+  sel.innerHTML = '<option value="">Compte : tous</option>' + noms.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
 }
 
 function renderCompteurList() {
