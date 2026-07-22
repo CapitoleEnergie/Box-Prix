@@ -8,7 +8,7 @@
 
 ## 1. Couche d'accès (`lib/sf.js`)
 
-L'application **n'utilise pas l'API REST Salesforce directement**. Elle appelle la **CLI `sf`**
+L'application **n'utilise pas l'API REST Salesforce directement**. Elle appelle la **CLI `sf`** .
 en sous-processus (`sf data query --file ... -o prod --json`) et parse le JSON retourné.
 
 | Élément | Valeur |
