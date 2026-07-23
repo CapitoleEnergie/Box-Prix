@@ -618,7 +618,17 @@ function buildSimCard(c) {
       </div>
     </div>
     <div class="sim-body">
-      ${inp.prefillInfo ? `<div class="prefill-banner">${icon('auto_awesome')} <span>Contrat en cours pré-rempli depuis la ligne d'offre <b>${inp.prefillInfo.ligneOffreName}</b> (offre ${inp.prefillInfo.offreName})</span></div>` : `<div class="prefill-banner warn">${icon('edit_note')} <span>Aucune ligne d'offre actuelle trouvée pour ce compteur — saisie manuelle requise</span></div>`}
+      ${inp.prefillInfo ? (() => {
+        const pi = inp.prefillInfo;
+        const loLabel = esc(pi.ligneOffreName || '(sans nom)');
+        const loLink = pi.ligneOffreId
+          ? `<a class="lo-link" href="https://capitoleenergie.lightning.force.com/lightning/r/LigneOffre__c/${encodeURIComponent(pi.ligneOffreId)}/view" target="_blank" rel="noopener noreferrer" title="Ouvrir la ligne d'offre dans Salesforce"><b>${loLabel}</b> ${icon('open_in_new')}</a>`
+          : `<b>${loLabel}</b>`;
+        const dd = pi.dateDebutContrat ? fmtDate(pi.dateDebutContrat) : null;
+        const df = pi.dateFinContrat ? fmtDate(pi.dateFinContrat) : null;
+        const periode = (dd || df) ? ` · livraison ${dd || '?'} → ${df || '?'}` : '';
+        return `<div class="prefill-banner">${icon('auto_awesome')} <span>Contrat en cours pré-rempli depuis la ligne d'offre ${loLink} (offre ${esc(pi.offreName || '—')})${periode}</span></div>`;
+      })() : `<div class="prefill-banner warn">${icon('edit_note')} <span>Aucune ligne d'offre actuelle trouvée pour ce compteur — saisie manuelle requise</span></div>`}
       ${!inp.prefillInfo ? `<div class="sim-actions">
         <button type="button" class="btn btn-ghost btn-sm" data-import-invoice>${icon('upload_file')} Importer une facture</button>
         <span class="sim-actions-hint">Extraction automatique du contrat en cours à partir d'un PDF de facture (données anonymisées avant envoi à OpenAI)</span>
