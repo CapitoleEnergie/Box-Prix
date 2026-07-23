@@ -219,6 +219,9 @@ input[type=number].input { -moz-appearance: textfield; }
 .market .txt .sub { color: var(--text-dim); font-size: 11.5px; }
 .market .lvl { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--primary-soft); color: var(--primary); }
 .market .lvl.seg { background: var(--warn-bg); color: var(--warn); }
+.market .cee-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; cursor: help; }
+.market .cee-badge.yes { background: var(--save-bg, #E6F7EE); color: var(--save, #0F8F4A); }
+.market .cee-badge.no { background: var(--rise-bg, #FDECEC); color: var(--rise, #C42B2B); }
 .market.none { background: var(--bg); border-color: var(--border); color: var(--text-dim); }
 .market-toggle { display: inline-flex; gap: 0; margin-bottom: 6px; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; background: var(--surface); }
 .market-toggle button { border: none; background: transparent; padding: 4px 10px; font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--text-dim); cursor: pointer; }

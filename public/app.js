@@ -709,21 +709,27 @@ function renderMarket(card, c) {
     + `Chaque offre est pondérée par ses volumes de postes (HPH, HCH, HPE, HCE…) ; on prend ensuite la valeur médiane sur l'ensemble des offres. `
     + `Prix hors marge : ajoutez votre marge par-dessus.`;
   const ceeTxt = (s.cee != null && s.ceeN > 0) ? ` · CEE médian ${eur2.format(s.cee)}/MWh (${s.ceeN})` : '';
+  // Éligibilité CEE du compte (APE/NAF) : information contextuelle pour l'utilisateur
+  const ceeElig = c.apenaf && c.apenaf.CEE__c === false
+    ? '<span class="cee-badge no" title="Le code APE/NAF du compte n\'ouvre pas droit aux Certificats d\'Économies d\'Énergie">Compte NON soumis aux CEE</span>'
+    : (c.apenaf && c.apenaf.CEE__c === true
+      ? '<span class="cee-badge yes" title="Le code APE/NAF du compte ouvre droit aux Certificats d\'Économies d\'Énergie">Compte soumis aux CEE</span>'
+      : '');
 
   const detailRows = marketDetailRecords(c, mode).sort((a, b) => (b.cd || '').localeCompare(a.cd || ''));
   const fmtDd = (iso) => iso ? String(iso).slice(0,10).split('-').reverse().join('/') : '—';
   const popoverTable = detailRows.length ? `<div class="market-popover" data-market-popover>
     <div class="market-popover-title">Propositions — top ${detailRows.length}</div>
     <table class="market-popover-table">
-      <thead><tr><th>Date</th><th>Opportunité</th><th>Fournisseur</th><th>Offre</th><th>Début</th><th>Fin</th><th class="num">Volume compteur (MWh)</th><th class="num">Prix (€/MWh)</th></tr></thead>
-      <tbody>${detailRows.map(r => `<tr><td>${fmtDd(r.cd)}</td><td>${esc(r.opp || '—')}</td><td>${esc(r.frs || '—')}</td><td>${esc(r.offre || '—')}</td><td>${fmtDd(r.dd)}</td><td>${fmtDd(r.df)}</td><td class="num">${r.volC != null ? num.format(r.volC) : '—'}</td><td class="num">${num.format(r.p)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Date</th><th>N° LO</th><th>Opportunité</th><th>Fournisseur</th><th>Offre</th><th>Début</th><th>Fin</th><th class="num">Volume compteur (MWh)</th><th class="num">Prix moyen pondéré margé (€/MWh)</th></tr></thead>
+      <tbody>${detailRows.map(r => `<tr><td>${fmtDd(r.cd)}</td><td>${esc(r.lo || '—')}</td><td>${esc(r.opp || '—')}</td><td>${esc(r.frs || '—')}</td><td>${esc(r.offre || '—')}</td><td>${fmtDd(r.dd)}</td><td>${fmtDd(r.df)}</td><td class="num">${r.volC != null ? num.format(r.volC) : '—'}</td><td class="num">${r.pm != null ? num.format(r.pm) : '—'}</td></tr>`).join('')}</tbody>
     </table>
   </div>` : '';
 
   host.innerHTML = `
     ${icon('lightbulb')}
     <div class="txt">
-      Prix marché pondéré médian <b>${eur2.format(s.median)}/MWh</b> <span class="help mi" title="${tip.replace(/"/g, '&quot;')}">help</span> <button type="button" class="market-detail-btn" data-toggle-popover title="Voir le détail des offres">${icon('table_chart')}</button> <span class="lvl ${s.level === 'segment' ? 'seg' : ''}">${s.level === 'segment' ? 'segment' : 'profil'}</span>
+      Prix marché pondéré médian <b>${eur2.format(s.median)}/MWh</b> <span class="help mi" title="${tip.replace(/"/g, '&quot;')}">help</span> <button type="button" class="market-detail-btn" data-toggle-popover title="Voir le détail des offres">${icon('table_chart')}</button> <span class="lvl ${s.level === 'segment' ? 'seg' : ''}">${s.level === 'segment' ? 'segment' : 'profil'}</span> ${ceeElig}
       ${popoverTable}
       <div class="sub">${lvlTxt} · fourchette ${num.format(s.p25)}–${num.format(s.p75)} €/MWh · ${s.n} ${srcLabel} sur ${days} j${perTxt}${ceeTxt}</div>
     </div>
